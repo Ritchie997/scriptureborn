@@ -3,36 +3,22 @@
 *.import
 *.remap
 export_presets.cfg
-.autoload_singleton_nodes
+.autoload_register
+.editor
 
 # Build artifacts
 *.exe
 *.dll
 *.so
 *.dylib
-*.bin
-*.apk
-*.aab
-*.app
-*.dmg
-*.msi
-*.deb
-*.rpm
+
+# Dependencies
+.addons/
+
+# Logs
+*.log
 
 # Temporary files
 *.tmp
 *.temp
-*.log
-*.cache
-*.bak
-
-# Editor/IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# System files
-.DS_Store
-Thumbs.db
 ```

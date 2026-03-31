@@ -15,7 +15,7 @@ extends Node2D
 @export var segment_mass: float = 0.1
 
 @export_group("References")
-@onready var hook_head: RigidBody2D = $HookHead
+@onready var hook_head: Area2D = $HookHead
 @onready var rope_visual: Line2D = $RopeVisual
 
 # Состояния крюка
@@ -31,6 +31,9 @@ var is_anchored: bool = false
 # Векторы для расчетов
 var fire_direction: Vector2 = Vector2.RIGHT
 var player_reference: CharacterBody2D
+
+# Кинематика головы крюка
+var hook_velocity: Vector2 = Vector2.ZERO
 
 # Сигналы
 signal hook_attached()
@@ -48,9 +51,13 @@ func _ready() -> void:
 	# Настройка визуала веревки
 	_setup_rope_visual()
 	
+	# Подключение сигнала столкновения для Area2D
+	if hook_head:
+		hook_head.body_entered.connect(_on_hook_head_body_entered)
+	
 	# Начальное скрытие крюка
 	hook_head.visible = false
-	hook_head.set_physics_process(false)
+	hook_head.set_process(false)
 
 
 func _initialize_rope() -> void:
@@ -85,17 +92,11 @@ func _initialize_rope() -> void:
 
 
 func _setup_hook_head() -> void:
-	# Настройка головы крюка для броска
-	hook_head.collision_layer = 3
+	# Настройка головы крюка для броска (Area2D не требует дополнительных настроек физики)
+	hook_head.collision_layer = 4
 	hook_head.collision_mask = 2
-	hook_head.linear_damping = 1.0
-	hook_head.angular_damping = 2.0
 	
-	# Подключение сигнала столкновения
-	var collision_shape: CollisionShape2D = hook_head.get_node("CollisionShape2D")
-	if collision_shape:
-		# Используем body_entered сигнал от Area2D если есть
-		pass
+	# Подключение сигнала столкновения уже выполнено в _ready()
 
 
 func _create_spring_joint(segment_a: RigidBody2D, segment_b: RigidBody2D) -> void:
@@ -134,14 +135,14 @@ func _physics_process(delta: float) -> void:
 
 
 func _update_firing(delta: float) -> void:
-	# Движение крюка вперед
-	if hook_head:
-		hook_head.linear_velocity = fire_direction * hook_speed
-		
-		# Проверка расстояния
-		var distance_from_player: float = hook_head.global_position.distance_to(player_reference.global_position)
-		if distance_from_player >= max_hook_distance:
-			_start_retraction()
+	# Движение крюка вперед с использованием кинематики
+	hook_velocity = fire_direction * hook_speed
+	hook_head.position += hook_velocity * delta
+	
+	# Проверка расстояния
+	var distance_from_player: float = hook_head.global_position.distance_to(player_reference.global_position)
+	if distance_from_player >= max_hook_distance:
+		_start_retraction()
 
 
 func _update_attached(delta: float) -> void:
@@ -162,14 +163,14 @@ func _update_attached(delta: float) -> void:
 
 func _update_retracting(delta: float) -> void:
 	# Возврат крюка к игроку
-	if hook_head:
-		var direction_to_player: Vector2 = (player_reference.global_position - hook_head.global_position).normalized()
-		hook_head.linear_velocity = direction_to_player * retraction_speed
-		
-		# Проверка достижения игрока
-		var distance_to_player: float = hook_head.global_position.distance_to(player_reference.global_position)
-		if distance_to_player < 20.0:
-			_reset_hook()
+	var direction_to_player: Vector2 = (player_reference.global_position - hook_head.global_position).normalized()
+	hook_velocity = direction_to_player * retraction_speed
+	hook_head.position += hook_velocity * delta
+	
+	# Проверка достижения игрока
+	var distance_to_player: float = hook_head.global_position.distance_to(player_reference.global_position)
+	if distance_to_player < 20.0:
+		_reset_hook()
 
 
 func _update_rope_visual() -> void:
@@ -201,8 +202,8 @@ func fire_hook(start_position: Vector2, direction: Vector2) -> void:
 	# Телепортация головы крюка к игроку
 	hook_head.global_position = start_position
 	hook_head.visible = true
-	hook_head.set_physics_process(true)
-	hook_head.linear_velocity = fire_direction * hook_speed
+	hook_head.set_process(true)
+	hook_velocity = fire_direction * hook_speed
 	
 	# Сброс позиций сегментов
 	_reset_segments_positions(start_position)
@@ -240,10 +241,10 @@ func _reset_hook() -> void:
 	# Полный сброс крюка в исходное состояние
 	current_state = HookState.IDLE
 	hook_head.visible = false
-	hook_head.set_physics_process(false)
-	hook_head.linear_velocity = Vector2.ZERO
+	hook_head.set_process(false)
+	hook_velocity = Vector2.ZERO
 	
-	# Скрытие сегментов рядом с игроком
+	# Сброс позиций сегментов рядом с игроком
 	for segment in segments:
 		segment.linear_velocity = Vector2.ZERO
 		segment.angular_velocity = 0.0
