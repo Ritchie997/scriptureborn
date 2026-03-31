@@ -1,9 +1,17 @@
 ; GDScript File Format v1 - Godot 4.x
 ; Scene: Player.tscn
+; Scriptureborn - Player Scene with Grappling Hook System
 
-[gd_scene load_steps=3 format=3 uid="uid://player123"]
+[gd_scene load_steps=4 format=3 uid="uid://player123"]
 
 [ext_resource type="Script" path="res://scripts/Player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/GrapplingHook.gd" id="2_hook"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 16.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hook"]
+radius = 5.0
 
 [node name="Player" type="CharacterBody2D"]
 collision_layer = 1
@@ -20,13 +28,18 @@ offset_right = 16.0
 offset_bottom = 16.0
 
 [node name="GrapplingHook" type="Node2D" parent="."]
+script = ExtResource("2_hook")
 
-[node name="HookHead" type="RigidBody2D" parent="GrapplingHook"]
-collision_layer = 3
+[node name="HookHead" type="Area2D" parent="GrapplingHook"]
+collision_layer = 4
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="GrapplingHook/HookHead"]
 shape = SubResource("CircleShape2D_hook")
+
+[node name="Visual" type="Sprite2D" parent="GrapplingHook/HookHead"]
+scale = Vector2(0.5, 0.5)
+modulate = Color(0.8, 0.3, 0.1, 1)
 
 [node name="RopeVisual" type="Line2D" parent="GrapplingHook"]
 width = 3.0
@@ -34,9 +47,3 @@ default_color = Color(0.7, 0.5, 0.3, 1)
 
 [node name="WeaponSpawn" type="Marker2D" parent="."]
 position = Vector2(20, 0)
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
-radius = 16.0
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_hook"]
-radius = 5.0
